@@ -1,0 +1,7 @@
+# PostgreSQL
+# ------------------------------------------------------------------------------
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_DB=auddy_backend
+POSTGRES_USER=nrYPoukZlGrYZBOgVpAsNgrNKkqlMfRO
+POSTGRES_PASSWORD=C5ERCIYYF3KjMYNxidI7c3NF4AdnGspQZ2gF4W1JQ6zLbV3CBxJxghre5dk5yohs
