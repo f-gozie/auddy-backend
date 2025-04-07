@@ -23,9 +23,6 @@ logger = logging.getLogger(__name__)
 MEDIA_ROOT = getattr(settings, 'MEDIA_ROOT', os.path.join(settings.BASE_DIR, 'media'))
 EXTRACTION_DIR = os.path.join(MEDIA_ROOT, 'extractions')
 
-# Make sure the extraction directory exists
-os.makedirs(EXTRACTION_DIR, exist_ok=True)
-
 
 def is_youtube_url(url):
     """Check if a URL is from YouTube."""
@@ -75,6 +72,26 @@ def extract_google_drive_file_id(url):
     return None
 
 
+def create_directory_safely(directory_path):
+    """
+    Attempts to create a directory if it doesn't exist.
+    Returns True if the directory exists or was created successfully.
+    Returns False if there was a permission error.
+    """
+    if os.path.exists(directory_path):
+        return True
+    
+    try:
+        os.makedirs(directory_path, exist_ok=True)
+        return True
+    except PermissionError:
+        logger.warning(f"Permission denied when creating directory: {directory_path}")
+        return False
+    except Exception as e:
+        logger.warning(f"Error creating directory {directory_path}: {str(e)}")
+        return False
+
+
 def download_from_google_drive(file_id, output_path):
     """Download a file from Google Drive."""
     logger.info(f"Downloading Google Drive file: {file_id}")
@@ -101,6 +118,9 @@ def download_from_google_drive(file_id, output_path):
     if response.status_code != 200:
         logger.error(f"Failed to download Google Drive file: {response.status_code}")
         raise Exception(f"Failed to download from Google Drive: HTTP {response.status_code}")
+    
+    # Make sure the directory exists
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
     # Save the file
     with open(output_path, 'wb') as f:
@@ -344,7 +364,10 @@ def extract_audio(self, extraction_id):
                 
                 # Create final directory based on extraction ID
                 final_dir = os.path.join(EXTRACTION_DIR, str(extraction.id))
-                os.makedirs(final_dir, exist_ok=True)
+                
+                # Verify if we can create the directory - if not, fail gracefully
+                if not create_directory_safely(final_dir):
+                    raise Exception("Unable to create extraction directory. Please contact administrator.")
                 
                 # Move file to final location
                 filename = f"{extraction.title or 'extracted'}.{extraction.audio_format}"
@@ -355,10 +378,19 @@ def extract_audio(self, extraction_id):
                     sanitized_filename = sanitized_filename[:100] + f".{extraction.audio_format}"
                 
                 final_path = os.path.join(final_dir, sanitized_filename)
-                shutil.copy2(extracted_file, final_path)
+                
+                try:
+                    shutil.copy2(extracted_file, final_path)
+                except (PermissionError, IOError) as e:
+                    logger.error(f"Failed to copy file to {final_path}: {str(e)}")
+                    raise Exception(f"Unable to save extracted audio file: {str(e)}")
                 
                 # Get file size
-                file_size = os.path.getsize(final_path)
+                try:
+                    file_size = os.path.getsize(final_path)
+                except (PermissionError, IOError) as e:
+                    logger.warning(f"Unable to get file size for {final_path}: {str(e)}")
+                    file_size = None
                 
                 # Update extraction object
                 extraction.file_path = final_path
