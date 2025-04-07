@@ -21,6 +21,22 @@ SECRET_KEY = env("DJANGO_SECRET_KEY")
 # https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["auddy.ng"])
 
+# CSRF settings for cross-origin requests
+# ------------------------------------------------------------------------------
+CSRF_TRUSTED_ORIGINS = [
+    "https://auddy.ng",
+    "https://www.auddy.ng",
+    "https://api.auddy.ng",
+]
+
+# CORS settings for production
+# ------------------------------------------------------------------------------
+CORS_ALLOWED_ORIGINS = [
+    "https://auddy.ng",
+    "https://www.auddy.ng",
+]
+CORS_ALLOW_CREDENTIALS = True
+
 # DATABASES
 # ------------------------------------------------------------------------------
 DATABASES["default"]["CONN_MAX_AGE"] = env.int("CONN_MAX_AGE", default=60)
